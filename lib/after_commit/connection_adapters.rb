@@ -13,6 +13,7 @@ module AfterCommit
           trigger_after_commit_on_create_callbacks
           trigger_after_commit_on_update_callbacks
           trigger_after_commit_on_destroy_callbacks
+          cleanup_committed_records
         end 
         alias_method_chain :commit_db_transaction, :callback
 
@@ -21,12 +22,28 @@ module AfterCommit
         def rollback_db_transaction_with_callback
           rollback_db_transaction_without_callback
 
+          cleanup_committed_records
+        end
+        alias_method_chain :rollback_db_transaction, :callback
+
+        def cleanup_committed_records
           AfterCommit.committed_records = []
           AfterCommit.committed_records_on_create = []
           AfterCommit.committed_records_on_update = []
           AfterCommit.committed_records_on_destroy = []
         end
-        alias_method_chain :rollback_db_transaction, :callback
+
+        if (::ActiveRecord::Base.partial_updates rescue false)
+          def cleanup_committed_records_with_changes
+            AfterCommit.committed_records.each do |record|
+              record.send(:remove_instance_variable, '@uncommitted_changes')
+              record.send(:remove_instance_variable, '@committed_changes')
+            end
+
+            cleanup_committed_records_without_changes
+          end
+          alias_method_chain :cleanup_committed_records, :changes
+        end
         
         protected        
           def trigger_after_commit_callbacks
@@ -40,10 +57,6 @@ module AfterCommit
                 end
               end 
             end 
-
-            # Make sure we clear out our list of committed records now that we've
-            # triggered the callbacks for each one. 
-            AfterCommit.committed_records = []
           end
         
           def trigger_after_commit_on_create_callbacks
@@ -57,10 +70,6 @@ module AfterCommit
                 end
               end 
             end 
-
-            # Make sure we clear out our list of committed records now that we've
-            # triggered the callbacks for each one. 
-            AfterCommit.committed_records_on_create = []
           end
         
           def trigger_after_commit_on_update_callbacks
@@ -74,10 +83,6 @@ module AfterCommit
                 end
               end 
             end 
-
-            # Make sure we clear out our list of committed records now that we've
-            # triggered the callbacks for each one. 
-            AfterCommit.committed_records_on_update = []
           end
         
           def trigger_after_commit_on_destroy_callbacks
@@ -91,10 +96,6 @@ module AfterCommit
                 end
               end 
             end 
-
-            # Make sure we clear out our list of committed records now that we've
-            # triggered the callbacks for each one. 
-            AfterCommit.committed_records_on_destroy = []
           end
         #end protected
       end 

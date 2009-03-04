@@ -48,6 +48,8 @@ module AfterCommit
         # within this transaction.
         def add_committed_record
           AfterCommit.committed_records << self
+          @committed_changes ||= @uncommitted_changes
+          @uncommitted_changes = nil
         end
         
         def add_committed_record_on_create
@@ -61,6 +63,24 @@ module AfterCommit
         def add_committed_record_on_destroy
           AfterCommit.committed_records << self
           AfterCommit.committed_records_on_destroy << self
+          @committed_changes ||= @uncommitted_changes
+          @uncommitted_changes = nil
+        end
+
+        if (::ActiveRecord::Base.partial_updates rescue false)
+          #before_save :add_record_changes
+          before_update :add_uncommitted_changes
+          before_create :add_uncommitted_changes
+          before_destroy :add_uncommitted_changes
+
+          def add_uncommitted_changes
+            @uncommitted_changes = self.changes.freeze
+            true
+          end
+
+          def committed_changes
+            @committed_changes
+          end
         end
 
         # Wraps a call to the private callback method so that the the
