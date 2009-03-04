@@ -54,6 +54,7 @@ module AfterCommit
                 begin
                   record.after_commit_callback
                 rescue
+                  AfterCommit.log_callback_error(record, $!)
                 end
               end 
             end 
@@ -67,6 +68,7 @@ module AfterCommit
                 begin
                   record.after_commit_on_create_callback
                 rescue
+                  AfterCommit.log_callback_error(record, $!)
                 end
               end 
             end 
@@ -80,6 +82,7 @@ module AfterCommit
                 begin
                   record.after_commit_on_update_callback
                 rescue
+                  AfterCommit.log_callback_error(record, $!)
                 end
               end 
             end 
@@ -93,6 +96,7 @@ module AfterCommit
                 begin
                   record.after_commit_on_destroy_callback
                 rescue
+                  AfterCommit.log_callback_error(record, $!)
                 end
               end 
             end 
