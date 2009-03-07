@@ -36,8 +36,12 @@ module AfterCommit
         if (::ActiveRecord::Base.partial_updates rescue false)
           def cleanup_committed_records_with_changes
             AfterCommit.committed_records.each do |record|
-              record.send(:remove_instance_variable, '@uncommitted_changes')
-              record.send(:remove_instance_variable, '@committed_changes')
+              if record.instance_variable_defined?(:@committed_changes)
+                record.send(:remove_instance_variable, :@committed_changes)
+              end
+              if record.instance_variable_defined?(:@uncommitted_changes)
+                record.send(:remove_instance_variable, :@uncommitted_changes)
+              end
             end
 
             cleanup_committed_records_without_changes
